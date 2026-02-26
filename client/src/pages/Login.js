@@ -6,16 +6,65 @@ const Login = ({ onLogin }) => {
   const [role, setRole] = useState('Farmer'); // 'Farmer' or 'Retailer'
   const [formData, setFormData] = useState({ identifier: '', password: '', name: '' });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Dummy authentication
-    const user = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: isRegistering ? formData.name : (role === 'Farmer' ? 'John Doe' : 'FreshMart Logs'),
-      role: role,
-      contact: formData.identifier
-    };
-    onLogin(user);
+    
+    if (isRegistering) {
+      // Registration flow
+      try {
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            role: role,
+            mobileOrEmail: formData.identifier,
+            password: formData.password
+          })
+        });
+        
+        if (response.ok) {
+          await response.json();
+          alert('Registration successful! Please login.');
+          setIsRegistering(false);
+          setFormData({ identifier: '', password: '', name: '' });
+        } else {
+          alert('Registration failed. Please try again.');
+        }
+      } catch (error) {
+        console.error('Registration error:', error);
+        alert('Registration failed. Please try again.');
+      }
+    } else {
+      // Login flow
+      try {
+        const response = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            identifier: formData.identifier,
+            password: formData.password,
+            role: role
+          })
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          const user = {
+            id: data.user.id,
+            name: data.user.name,
+            role: data.user.role,
+            contact: data.user.mobileOrEmail
+          };
+          onLogin(user);
+        } else {
+          alert('Login failed. Please check your credentials.');
+        }
+      } catch (error) {
+        console.error('Login error:', error);
+        alert('Login failed. Please try again.');
+      }
+    }
   };
 
   return (

@@ -8,6 +8,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Import routes
+const authRoutes = require('./routes/auth');
+
+// Use routes
+app.use('/api/auth', authRoutes);
+
 // Dummy Weather API
 app.get('/api/weather', (req, res) => {
   res.json({
@@ -34,20 +40,6 @@ app.get('/api/crops', (req, res) => {
     { name: 'Onion', currentPrice: 22, profitPrediction: 'Medium', risk: 'Medium' },
     { name: 'Cabbage', currentPrice: 12, profitPrediction: 'Low', risk: 'High' }
   ]);
-});
-
-// Dummy Auth
-app.post('/api/auth/login', (req, res) => {
-  const { identifier, role } = req.body;
-  res.json({
-    token: 'dummy-jwt-token-12345',
-    user: {
-      id: Math.random().toString(36).substr(2, 9),
-      name: role === 'Farmer' ? 'Farmer John' : 'Retailer Mart',
-      role: role || 'Farmer',
-      contact: identifier,
-    }
-  });
 });
 
 // Simple Database Connection
