@@ -1,27 +1,29 @@
 {
-  "name": "agriconnect",
+  "name": "agrichain",
   "version": "1.0.0",
-  "description": "Smart Farmer Retail Network",
-  "main": "index.js",
+  "description": "Farm-to-Market Intelligence Platform",
+  "main": "server/index.js",
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview",
-    "server": "node server/index.js"
+    "server": "nodemon server/index.js",
+    "client": "cd client && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "seed": "node server/seedData.js"
   },
+  "keywords": ["agriculture", "farming", "mandi", "india"],
+  "author": "",
+  "license": "MIT",
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.8.0",
-    "lucide-react": "^0.263.1",
     "express": "^4.18.2",
+    "mongoose": "^7.6.3",
     "cors": "^2.8.5",
-    "sqlite3": "^5.1.6"
+    "dotenv": "^16.3.1",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "axios": "^1.5.1",
+    "twilio": "^4.19.0"
   },
   "devDependencies": {
-    "@types/react": "^18.0.27",
-    "@types/react-dom": "^18.0.10",
-    "@vitejs/plugin-react": "^3.1.0",
-    "vite": "^4.1.0"
+    "nodemon": "^3.0.1",
+    "concurrently": "^8.2.1"
   }
 }
