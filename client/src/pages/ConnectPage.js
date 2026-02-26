@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, MapPin, CheckCircle, Users, Plus, MessageCircle } from 'lucide-react';
 
 const ConnectPage = ({ user }) => {
@@ -6,12 +6,51 @@ const ConnectPage = ({ user }) => {
 
     // Farmer State
     const [showAddForm, setShowAddForm] = useState(false);
-    const [myListings] = useState([
+    const [myListings, setMyListings] = useState([
         { id: 1, crop: 'Tomato', qty: '500kg', price: '₹45/kg', date: '2023-11-20', status: 'Active' }
     ]);
-    const [incomingRequests] = useState([
+    const [incomingRequests, setIncomingRequests] = useState([
         { id: 101, retailer: 'FreshMart Organics', offer: '₹42/kg', qty: '300kg', status: 'Pending' }
     ]);
+    const [newListing, setNewListing] = useState({
+        crop: '',
+        qty: '',
+        price: '',
+        date: ''
+    });
+
+    const handlePublish = (e) => {
+        e.preventDefault();
+        if (!newListing.crop || !newListing.qty || !newListing.price || !newListing.date) return;
+
+        const newEntry = {
+            id: Date.now(),
+            crop: newListing.crop,
+            qty: `${newListing.qty}kg`,
+            price: `₹${newListing.price}/kg`,
+            date: newListing.date,
+            status: 'Active'
+        };
+
+        setMyListings(prev => [newEntry, ...prev]);
+        setNewListing({ crop: '', qty: '', price: '', date: '' });
+        setShowAddForm(false);
+    };
+
+    const handleOfferAction = (id, action) => {
+        setIncomingRequests(prev => prev.map(req => {
+            if (req.id === id) {
+                if (action === 'accept') {
+                    return { ...req, status: 'Accepted' };
+                } else if (action === 'decline') {
+                    return { ...req, status: 'Declined' };
+                } else if (action === 'negotiate') {
+                    return { ...req, status: 'Negotiating' };
+                }
+            }
+            return req;
+        }));
+    };
 
     // Retailer State
     const [searchTerm, setSearchTerm] = useState('');
@@ -28,6 +67,34 @@ const ConnectPage = ({ user }) => {
         const matchesSearch = f.crop.toLowerCase().includes(searchTerm.toLowerCase()) || f.location.toLowerCase().includes(searchTerm.toLowerCase());
         return matchesCrop && matchesSearch;
     });
+
+    const getPrediction = async () => {
+        try {
+            const response = await fetch("http://localhost:5001/predict", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    month: 6,
+                    temperature: 32,
+                    humidity: 80,
+                    rainfall: 5,
+                    soil_score: 50,
+                    transit_time: 6
+                })
+            });
+
+            const data = await response.json();
+            console.log("AI Response:", data);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    useEffect(() => {
+        getPrediction();
+    }, []);
 
     return (
         <div className="animate-fade-in pb-8">
@@ -55,27 +122,50 @@ const ConnectPage = ({ user }) => {
                         {showAddForm && (
                             <div className="card mb-6 border-primary" style={{ borderWidth: '2px', borderStyle: 'solid', borderColor: 'var(--primary-color)' }}>
                                 <h3 className="mb-4">Post New Crop</h3>
-                                <form>
+                                <form onSubmit={handlePublish}>
                                     <div className="form-group">
                                         <label className="form-label">Crop Name</label>
-                                        <input type="text" className="form-input" placeholder="e.g. Tomato" />
+                                        <input
+                                            type="text"
+                                            className="form-input"
+                                            placeholder="e.g. Tomato"
+                                            value={newListing.crop}
+                                            onChange={(e) => setNewListing({ ...newListing, crop: e.target.value })}
+                                        />
                                     </div>
                                     <div className="flex gap-4">
                                         <div className="form-group flex-1">
                                             <label className="form-label">Quantity (kg)</label>
-                                            <input type="number" className="form-input" placeholder="e.g. 1000" />
+                                            <input
+                                                type="number"
+                                                className="form-input"
+                                                placeholder="e.g. 1000"
+                                                value={newListing.qty}
+                                                onChange={(e) => setNewListing({ ...newListing, qty: e.target.value })}
+                                            />
                                         </div>
                                         <div className="form-group flex-1">
                                             <label className="form-label">Price (₹/kg)</label>
-                                            <input type="number" className="form-input" placeholder="e.g. 40" />
+                                            <input
+                                                type="number"
+                                                className="form-input"
+                                                placeholder="e.g. 40"
+                                                value={newListing.price}
+                                                onChange={(e) => setNewListing({ ...newListing, price: e.target.value })}
+                                            />
                                         </div>
                                     </div>
                                     <div className="form-group mb-4">
                                         <label className="form-label">Estimated Harvest Date</label>
-                                        <input type="date" className="form-input" />
+                                        <input
+                                            type="date"
+                                            className="form-input"
+                                            value={newListing.date}
+                                            onChange={(e) => setNewListing({ ...newListing, date: e.target.value })}
+                                        />
                                     </div>
                                     <div className="flex gap-4">
-                                        <button type="button" className="btn btn-primary flex-1">Publish Listing</button>
+                                        <button type="submit" className="btn btn-primary flex-1">Publish Listing</button>
                                         <button type="button" className="btn btn-secondary flex-1" onClick={() => setShowAddForm(false)}>Cancel</button>
                                     </div>
                                 </form>
@@ -109,18 +199,33 @@ const ConnectPage = ({ user }) => {
                                 <div key={req.id} className="card mb-4" style={{ borderLeft: '4px solid var(--alert-yellow)' }}>
                                     <div className="flex justify-between mb-2">
                                         <h4 className="m-0">{req.retailer}</h4>
-                                        <span className="text-sm font-bold text-yellow-600">{req.status}</span>
+                                        <span className={`text-sm font-bold ${req.status === 'Accepted' ? 'text-green-600' : req.status === 'Declined' ? 'text-red-600' : 'text-yellow-600'}`}>
+                                            {req.status}
+                                        </span>
                                     </div>
                                     <p className="m-0 text-sm text-muted mb-4">
                                         Wants to buy <strong>{req.qty}</strong> of your Tomato crop for <strong>{req.offer}</strong>.
                                     </p>
                                     <div className="flex gap-2">
-                                        <button className="btn btn-primary py-2 px-4 text-sm flex-1">Accept</button>
-                                        <button className="btn btn-secondary py-2 px-4 text-sm flex-1">Negotiate</button>
-                                        <button className="btn btn-danger py-2 px-4 text-sm">Decline</button>
+                                        <button
+                                            className="btn btn-primary py-2 px-4 text-sm flex-1"
+                                            onClick={() => handleOfferAction(req.id, 'accept')}
+                                            disabled={req.status === 'Accepted' || req.status === 'Declined'}
+                                        >Accept</button>
+                                        <button
+                                            className="btn btn-secondary py-2 px-4 text-sm flex-1"
+                                            onClick={() => handleOfferAction(req.id, 'negotiate')}
+                                            disabled={req.status === 'Accepted' || req.status === 'Declined'}
+                                        >Negotiate</button>
+                                        <button
+                                            className="btn btn-danger py-2 px-4 text-sm"
+                                            onClick={() => handleOfferAction(req.id, 'decline')}
+                                            disabled={req.status === 'Accepted' || req.status === 'Declined'}
+                                        >Decline</button>
                                     </div>
                                 </div>
                             ))
+
                         )}
                     </div>
 
