@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cloud, Sun, CloudRain, AlertTriangle, TrendingUp, IndianRupee, ShieldAlert, Sparkles, Droplets, Wind } from 'lucide-react';
+import { Cloud, Sun, CloudRain, AlertTriangle, IndianRupee, Sparkles, Droplets, Wind } from 'lucide-react';
 
 const Dashboard = ({ user }) => {
   // Mock Data
@@ -18,35 +18,135 @@ const Dashboard = ({ user }) => {
     ]
   };
 
-  const recommendations = [
-    {
-      name: 'Tomato',
-      price: '₹45/kg',
-      profit: 'High',
-      profitColor: 'badge-green',
-      risk: 'Low',
-      riskColor: 'badge-green',
-      icon: '🍅'
-    },
-    {
-      name: 'Onion',
-      price: '₹22/kg',
-      profit: 'Medium',
-      profitColor: 'badge-yellow',
-      risk: 'Medium',
-      riskColor: 'badge-yellow',
-      icon: '🧅'
-    },
-    {
-      name: 'Cabbage',
-      price: '₹12/kg',
-      profit: 'Low',
-      profitColor: 'badge-red',
-      risk: 'High',
-      riskColor: 'badge-red',
-      icon: '🥬'
+  // Calculate weather-based crop recommendations
+  const calculateCropRecommendations = () => {
+    const { temp, humidity, rainChance } = weather;
+    
+    // Base prices
+    const basePrices = {
+      Tomato: 40,
+      Onion: 20,
+      Cabbage: 10
+    };
+
+    // Tomato analysis
+    let tomatoPrice = basePrices.Tomato;
+    let tomatoProfit = 'Medium';
+    let tomatoRisk = 'Medium';
+    
+    // Tomatoes thrive in moderate temp (20-30°C), moderate humidity (50-70%)
+    if (temp >= 20 && temp <= 30 && humidity >= 50 && humidity <= 70) {
+      tomatoPrice += 8; // Good conditions = higher yield = better price
+      tomatoProfit = 'High';
+      tomatoRisk = 'Low';
+    } else if (temp > 30 || humidity > 80) {
+      tomatoPrice -= 5; // Hot/humid = disease risk
+      tomatoProfit = 'Low';
+      tomatoRisk = 'High';
     }
-  ];
+    
+    if (rainChance > 0 && rainChance <= 30) {
+      tomatoPrice += 3; // Light rain is good
+      if (tomatoRisk === 'Medium') tomatoRisk = 'Low';
+    } else if (rainChance > 60) {
+      tomatoPrice -= 8; // Heavy rain = disease
+      tomatoRisk = 'High';
+      tomatoProfit = 'Low';
+    }
+
+    // Onion analysis
+    let onionPrice = basePrices.Onion;
+    let onionProfit = 'Medium';
+    let onionRisk = 'Medium';
+    
+    // Onions prefer dry conditions, moderate temp (15-25°C)
+    if (temp >= 15 && temp <= 28 && humidity < 70) {
+      onionPrice += 5;
+      onionProfit = 'High';
+      onionRisk = 'Low';
+    } else if (humidity > 75) {
+      onionPrice -= 3;
+      onionRisk = 'High';
+    }
+    
+    if (rainChance < 20) {
+      onionPrice += 2; // Dry is good for onions
+    } else if (rainChance > 50) {
+      onionPrice -= 5; // Too much rain = rot
+      onionRisk = 'High';
+      onionProfit = 'Low';
+    }
+
+    // Cabbage analysis
+    let cabbagePrice = basePrices.Cabbage;
+    let cabbageProfit = 'Medium';
+    let cabbageRisk = 'Medium';
+    
+    // Cabbage prefers cool weather (15-20°C), high humidity
+    if (temp >= 15 && temp <= 22 && humidity >= 60) {
+      cabbagePrice += 4;
+      cabbageProfit = 'High';
+      cabbageRisk = 'Low';
+    } else if (temp > 28) {
+      cabbagePrice -= 4; // Hot weather = poor growth
+      cabbageProfit = 'Low';
+      cabbageRisk = 'High';
+    }
+    
+    if (rainChance >= 20 && rainChance <= 40) {
+      cabbagePrice += 2; // Moderate rain is good
+    } else if (rainChance > 60) {
+      cabbageRisk = 'High';
+    }
+
+    // Helper function to get badge color
+    const getBadgeColor = (level) => {
+      if (level === 'High') return 'badge-green';
+      if (level === 'Medium') return 'badge-yellow';
+      return 'badge-red';
+    };
+
+    return [
+      {
+        name: 'Tomato',
+        price: `₹${Math.round(tomatoPrice)}/kg`,
+        profit: tomatoProfit,
+        profitColor: getBadgeColor(tomatoProfit),
+        risk: tomatoRisk,
+        riskColor: tomatoRisk === 'Low' ? 'badge-green' : tomatoRisk === 'Medium' ? 'badge-yellow' : 'badge-red',
+        icon: '🍅'
+      },
+      {
+        name: 'Onion',
+        price: `₹${Math.round(onionPrice)}/kg`,
+        profit: onionProfit,
+        profitColor: getBadgeColor(onionProfit),
+        risk: onionRisk,
+        riskColor: onionRisk === 'Low' ? 'badge-green' : onionRisk === 'Medium' ? 'badge-yellow' : 'badge-red',
+        icon: '🧅'
+      },
+      {
+        name: 'Cabbage',
+        price: `₹${Math.round(cabbagePrice)}/kg`,
+        profit: cabbageProfit,
+        profitColor: getBadgeColor(cabbageProfit),
+        risk: cabbageRisk,
+        riskColor: cabbageRisk === 'Low' ? 'badge-green' : cabbageRisk === 'Medium' ? 'badge-yellow' : 'badge-red',
+        icon: '🥬'
+      }
+    ];
+  };
+
+  const recommendations = calculateCropRecommendations();
+  
+  // Find the best crop for the recommendation message
+  const bestCrop = recommendations.reduce((best, crop) => {
+    const profitScore = { High: 3, Medium: 2, Low: 1 };
+    const riskScore = { Low: 3, Medium: 2, High: 1 };
+    const cropScore = profitScore[crop.profit] + riskScore[crop.risk];
+    const bestScore = profitScore[best.profit] + riskScore[best.risk];
+    return cropScore > bestScore ? crop : best;
+  }, recommendations[0]);
 
   return (
     <div className="animate-fade-in">
@@ -129,7 +229,7 @@ const Dashboard = ({ user }) => {
 
           <div className="mb-6 p-5 rounded-xl text-white" style={{ background: 'linear-gradient(135deg, #2E7D32 0%, #4CAF50 100%)' }}>
             <p className="m-0 text-lg font-medium leading-relaxed">
-              "Based on recent weather trends and high market demand in your area, growing <strong style={{ color: '#fffb00' }}>Tomato</strong> can give you higher profit margins this season."
+              "Based on recent weather trends and high market demand in your area, growing <strong style={{ color: '#fffb00' }}>{bestCrop.name}</strong> can give you higher profit margins this season."
             </p>
           </div>
 

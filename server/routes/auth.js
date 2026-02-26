@@ -66,8 +66,38 @@ router.post('/verify-otp', async (req, res) => {
 // Complete Registration
 router.post('/register', async (req, res) => {
   try {
-    const { phone, name, state, district, crops, language } = req.body;
+    const { phone, name, state, district, crops, language, mobileOrEmail, password, role } = req.body;
 
+    // Check if this is the new registration format (from Login page)
+    if (mobileOrEmail && password && role) {
+      // Check if user already exists
+      const existingUser = await User.findOne({ mobileOrEmail });
+      if (existingUser) {
+        return res.status(400).json({ error: 'User already exists' });
+      }
+
+      // Create new user
+      const newUser = new User({
+        name,
+        role,
+        mobileOrEmail,
+        password, // In production, hash this password
+        isVerified: true
+      });
+      await newUser.save();
+
+      return res.json({ 
+        message: 'Registration successful',
+        user: { 
+          id: newUser._id, 
+          name: newUser.name, 
+          role: newUser.role,
+          mobileOrEmail: newUser.mobileOrEmail 
+        } 
+      });
+    }
+
+    // Old registration format (from Register page)
     const user = await User.findOneAndUpdate(
       { phone },
       { 
@@ -80,6 +110,44 @@ router.post('/register', async (req, res) => {
     );
 
     res.json({ user });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Login endpoint
+router.post('/login', async (req, res) => {
+  try {
+    const { identifier, password, role } = req.body;
+
+    // Find user by mobileOrEmail
+    const user = await User.findOne({ mobileOrEmail: identifier });
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // In production, compare hashed passwords
+    if (user.password !== password) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+
+    // Check if role matches
+    if (user.role !== role) {
+      return res.status(401).json({ error: 'Invalid role selected' });
+    }
+
+    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET || 'secret', { expiresIn: '30d' });
+
+    res.json({ 
+      token, 
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        role: user.role,
+        mobileOrEmail: user.mobileOrEmail 
+      } 
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
