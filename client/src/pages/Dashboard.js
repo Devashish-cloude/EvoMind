@@ -1,5 +1,6 @@
 import React from 'react';
 import { Cloud, Sun, CloudRain, AlertTriangle, IndianRupee, Sparkles, Droplets, Wind } from 'lucide-react';
+import AIChatbot from '../components/AIChatbot';
 
 const Dashboard = ({ user }) => {
   // Mock Data
@@ -216,6 +217,9 @@ const Dashboard = ({ user }) => {
               <strong>Weather Alert:</strong> Expected light showers in the next 48 hours. Good time for natural irrigation.
             </p>
           </div>
+
+          {/* AI Chatbot */}
+          <AIChatbot />
         </div>
 
         {/* Smart Crop Recommendation Panel */}
