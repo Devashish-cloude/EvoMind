@@ -7,7 +7,6 @@ A full-stack platform helping Indian farmers make data-driven decisions about ha
 - 📊 Real-time mandi price tracking
 - ⚠️ Spoilage risk calculator
 - 🗺️ Market comparison & route optimization
-- 🌐 Multi-language support (Hindi/Marathi/English)
 - 📱 Mobile-first responsive design
 
 ## Tech Stack
